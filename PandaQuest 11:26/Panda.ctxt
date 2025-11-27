@@ -1,0 +1,16 @@
+#BlueJ class context
+comment0.target=Panda
+comment0.text=\n\ Panda\ -\ The\ player\ character\ in\ PandaQuest.\n\ \n\ The\ panda\ can\ move\ around\ the\ world\ and\ reveal\ tiles.\n\ Use\ arrow\ keys\ to\ move\ and\ SPACE\ to\ reveal\ the\ current\ tile.\n\ \n\ @author\ PandaQuest\ Team\n\ @version\ 1.0\n
+comment1.params=
+comment1.target=Panda()
+comment1.text=\n\ Constructor\ for\ Panda.\n
+comment2.params=
+comment2.target=void\ act()
+comment2.text=\n\ Act\ -\ do\ whatever\ the\ Panda\ wants\ to\ do.\n\ This\ method\ is\ called\ whenever\ the\ 'Act'\ or\ 'Run'\ button\ gets\ pressed.\n
+comment3.params=
+comment3.target=void\ handleMovement()
+comment3.text=\n\ Handle\ player\ movement\ with\ arrow\ keys.\n
+comment4.params=
+comment4.target=void\ handleAction()
+comment4.text=\n\ Handle\ player\ actions\ (revealing\ tiles).\n
+numComments=5

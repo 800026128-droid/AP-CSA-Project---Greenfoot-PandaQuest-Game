@@ -1,0 +1,15 @@
+#BlueJ class context
+comment0.target=TileMarker
+comment0.text=\n\ TileMarker\ -\ Visual\ indicator\ for\ revealed\ tiles.\n\ \n\ Displays\ the\ number\ of\ adjacent\ bamboo\ shoots\ for\ a\ revealed\ tile.\n\ Used\ to\ give\ players\ information\ about\ nearby\ hazards.\n\ \n\ @author\ PandaQuest\ Team\n\ @version\ 1.0\n
+comment1.params=count
+comment1.target=TileMarker(int)
+comment1.text=\n\ Constructor\ for\ TileMarker.\n\ @param\ count\ Number\ of\ adjacent\ bamboo\ shoots\n
+comment2.params=
+comment2.target=void\ updateImage()
+comment2.text=\n\ Update\ the\ visual\ appearance\ based\ on\ adjacent\ count.\n
+comment3.params=
+comment3.target=void\ act()
+comment3.text=\n\ Act\ -\ do\ whatever\ the\ TileMarker\ wants\ to\ do.\n
+comment4.params=
+comment4.target=void\ getFlag()
+numComments=5

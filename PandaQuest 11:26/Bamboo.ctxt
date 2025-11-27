@@ -1,0 +1,10 @@
+#BlueJ class context
+comment0.target=Bamboo
+comment0.text=\n\ Bamboo\ -\ An\ obstacle\ in\ PandaQuest.\n\ \n\ Represents\ bamboo\ shoots\ that\ the\ panda\ must\ avoid.\n\ When\ revealed,\ bamboo\ causes\ the\ player\ to\ lose\ a\ life.\n\ \n\ @author\ PandaQuest\ Team\n\ @version\ 1.0\n
+comment1.params=
+comment1.target=Bamboo()
+comment1.text=\n\ Constructor\ for\ Bamboo.\n
+comment2.params=
+comment2.target=void\ act()
+comment2.text=\n\ Act\ -\ do\ whatever\ the\ Bamboo\ wants\ to\ do.\n\ This\ method\ is\ called\ whenever\ the\ 'Act'\ or\ 'Run'\ button\ gets\ pressed.\n\ Bamboo\ is\ static\ and\ doesn't\ need\ to\ do\ anything\ per\ act\ cycle.\n
+numComments=3

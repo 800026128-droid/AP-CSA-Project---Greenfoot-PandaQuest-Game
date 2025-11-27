@@ -1,0 +1,12 @@
+#BlueJ class context
+comment0.target=Levels
+comment0.text=\n\ Write\ a\ description\ of\ class\ Levels\ here.\n\ \n\ @author\ (your\ name)\ \n\ @version\ (a\ version\ number\ or\ a\ date)\n
+comment1.params=
+comment1.target=Levels()
+comment2.params=
+comment2.target=void\ act()
+comment3.params=
+comment3.target=int\ getPLAY_WIDTH()
+comment4.params=
+comment4.target=int\ getWORLD_WIDTH()
+numComments=5
