@@ -1,96 +1,94 @@
-/**
- * Star.java
- *
- * Greenfoot Actor that grants the player (Panda) an extra life when collected.
- *
- * Behavior:
- * - When this Star intersects with the Panda actor, it will attempt to increase
- *   the Panda's life count by 1 (using a few common method/field names via reflection).
- * - Plays "star.wav" (if present in the project's sounds) and removes the star
- *   from the world so it cannot be collected again.
- *
- * Notes for integration:
- * - This class expects your player actor class to be named Panda. If your class
- *   is named differently, change the type used in getOneIntersectingObject(...)
- *   and the parameter type in giveExtraLife(...).
- * - The reflection attempts common method names (addLife, gainLife, increaseLife,
- *   oneUp, extraLife) and setters/getters (getLives/setLives, addLives(int)).
- *   If your Panda uses a different API, either add one of those helper methods
- *   to Panda or update giveExtraLife(...) to call the correct method directly.
- *
- * Example straightforward alternative (if your Panda has public int lives):
- *   public class Panda extends Actor {
- *       public int lives = 3;
- *   }
- *
- *   The reflection will also try to read/write a 'lives' field (private or public).
- */
-
 import greenfoot.*;  // (World, Actor, GreenfootImage, Greenfoot and MouseInfo)
 import java.lang.reflect.*;
 
-/** Star actor */
-public class Star extends Actor {
+/**
+ * Star - behaves like Bamboo (static pickup) but grants +1 life to the Panda
+ * when collected. Drop this into your project's classes folder alongside
+ * Bamboo.java.
+ *
+ * The code tries several common ways to increment the Panda's lives:
+ *  - call a no-arg method like addLife()
+ *  - call an int-arg method like addLives(1)
+ *  - use getLives()/setLives(int)
+ *  - modify a public or private 'lives' field
+ *
+ * If your Panda class exposes a clear API (e.g. addLife()), the Star will call it.
+ * If not, the reflection covers common cases. If you prefer a simpler direct
+ * call, tell me the Panda method/field name and I will update this to call it
+ * directly (no reflection).
+ */
+public class Star extends Actor
+{
+    public Star()
+    {
+        // Try to set a star image automatically if present in the images folder.
+        try {
+            GreenfootImage img = new GreenfootImage("star.png");
+            if (img != null) {
+                setImage(img);
+            }
+        } catch (Exception e) {
+            // ignore: image might not exist
+        }
+    }
 
-    public void act() {
+    public void act()
+    {
         Panda panda = (Panda) getOneIntersectingObject(Panda.class);
         if (panda != null) {
             boolean success = giveExtraLife(panda);
 
-            // optional sound feedback (ensure "star.wav" exists in project sounds)
-            try {
-                Greenfoot.playSound("star.wav");
-            } catch (Exception e) {
-                // ignore if no sound or play fails
+            // Play collect sound if provided
+            try { Greenfoot.playSound("star.wav"); } catch (Exception e) { /* ignore */ }
+
+            // Remove the star so it can't be collected again
+            World w = getWorld();
+            if (w != null) {
+                w.removeObject(this);
             }
 
-            // remove star so it can't be collected again
-            World world = getWorld();
-            if (world != null) {
-                world.removeObject(this);
-            }
-
-            // If reflection failed, consider logging to console to help debugging
             if (!success) {
                 System.out.println("Star: couldn't automatically increase Panda lives. " +
-                                   "Please add a public addLife() or getLives/setLives or public int lives field to Panda.");
+                                   "Add a public addLife() or addLives(int) or a public 'lives' field to Panda, " +
+                                   "or tell me the method/field name and I'll update Star.java accordingly.");
             }
         }
     }
 
     /**
-     * Try a variety of common ways to increment the player's life count.
-     * Uses reflection so Star doesn't need to know the exact Panda implementation.
-     * Returns true if it succeeded, false otherwise.
+     * Try common methods/fields to increment the Panda's lives.
+     * Returns true if an attempt succeeded.
      */
     private boolean giveExtraLife(Actor pandaActor) {
         Class<?> cls = pandaActor.getClass();
 
-        // 1) Try no-arg methods that imply giving a life
-        String[] noArgMethods = { "addLife", "gainLife", "increaseLife", "oneUp", "extraLife" };
+        // 1) Try common no-arg methods like addLife()
+        String[] noArgMethods = { "addLife", "gainLife", "increaseLife", "oneUp", "giveLife", "collectStar" };
         for (String name : noArgMethods) {
             try {
                 Method m = cls.getMethod(name);
                 m.invoke(pandaActor);
-                return true;
-            } catch (NoSuchMethodException e) {
-                // method not present, continue
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                // present but couldn't be invoked; continue to other attempts
-            }
-        }
-
-        // 2) Try methods that accept an int to add lives
-        String[] intArgMethods = { "addLives", "gainLives", "increaseLives" };
-        for (String name : intArgMethods) {
-            try {
-                Method m = cls.getMethod(name, int.class);
-                m.invoke(pandaActor, 1);
+                tryUpdateHUD(cls, pandaActor);
                 return true;
             } catch (NoSuchMethodException e) {
                 // not present
             } catch (IllegalAccessException | InvocationTargetException e) {
-                // invocation problem
+                // could not invoke; keep trying others
+            }
+        }
+
+        // 2) Try int-arg methods like addLives(int)
+        String[] intArgMethods = { "addLives", "gainLives", "increaseLives", "changeLives", "modifyLives" };
+        for (String name : intArgMethods) {
+            try {
+                Method m = cls.getMethod(name, int.class);
+                m.invoke(pandaActor, 1);
+                tryUpdateHUD(cls, pandaActor);
+                return true;
+            } catch (NoSuchMethodException e) {
+                // not present
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                // continue
             }
         }
 
@@ -103,35 +101,36 @@ public class Star extends Actor {
                 try {
                     Method setLives = cls.getMethod("setLives", int.class);
                     setLives.invoke(pandaActor, curr + 1);
+                    tryUpdateHUD(cls, pandaActor);
                     return true;
                 } catch (NoSuchMethodException e) {
-                    // set method not present, try to find a setter with Integer
+                    // try Integer wrapper
                     try {
-                        Method setLivesWrapper = cls.getMethod("setLives", Integer.class);
-                        setLivesWrapper.invoke(pandaActor, Integer.valueOf(curr + 1));
+                        Method setLives2 = cls.getMethod("setLives", Integer.class);
+                        setLives2.invoke(pandaActor, Integer.valueOf(curr + 1));
+                        tryUpdateHUD(cls, pandaActor);
                         return true;
-                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
-                        // continue to field-based attempts
-                    }
+                    } catch (Exception ex) { /* continue */ }
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     // continue
                 }
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            // getLives not present or invocation failed, continue
+            // continue to field attempts
         }
 
-        // 4) Try directly manipulating a 'lives' field (public or private)
+        // 4) Try public 'lives' field
         try {
-            // try public field first
             Field f = cls.getField("lives");
             if (f.getType() == int.class) {
                 int curr = f.getInt(pandaActor);
                 f.setInt(pandaActor, curr + 1);
+                tryUpdateHUD(cls, pandaActor);
                 return true;
             } else if (f.getType() == Integer.class) {
                 Integer curr = (Integer) f.get(pandaActor);
                 f.set(pandaActor, Integer.valueOf(curr == null ? 1 : curr + 1));
+                tryUpdateHUD(cls, pandaActor);
                 return true;
             }
         } catch (NoSuchFieldException e) {
@@ -142,20 +141,73 @@ public class Star extends Actor {
                 if (f2.getType() == int.class) {
                     int curr = f2.getInt(pandaActor);
                     f2.setInt(pandaActor, curr + 1);
+                    tryUpdateHUD(cls, pandaActor);
                     return true;
                 } else if (f2.getType() == Integer.class) {
                     Integer curr = (Integer) f2.get(pandaActor);
                     f2.set(pandaActor, Integer.valueOf(curr == null ? 1 : curr + 1));
+                    tryUpdateHUD(cls, pandaActor);
                     return true;
                 }
             } catch (NoSuchFieldException | IllegalAccessException ex) {
-                // give up on field attempt
+                // give up on field attempts
             }
         } catch (IllegalAccessException e) {
-            // access problem, continue
+            // continue
         }
 
-        // Nothing worked
+        // 5) Last resort: try any method containing "life" in the name
+        Method[] methods = cls.getMethods();
+        for (Method method : methods) {
+            String mName = method.getName().toLowerCase();
+            try {
+                if (mName.contains("life") && method.getParameterCount() == 0) {
+                    method.invoke(pandaActor);
+                    tryUpdateHUD(cls, pandaActor);
+                    return true;
+                }
+                if (mName.contains("life") && method.getParameterCount() == 1
+                    && method.getParameterTypes()[0] == int.class) {
+                    method.invoke(pandaActor, 1);
+                    tryUpdateHUD(cls, pandaActor);
+                    return true;
+                }
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                // ignore and continue
+            }
+        }
+
         return false;
+    }
+
+    /**
+     * Best-effort HUD refresh after lives changed. Tries common methods on Panda
+     * (updateLivesUI, refreshLives) and a static HUD class if present.
+     */
+    private void tryUpdateHUD(Class<?> cls, Actor pandaActor) {
+        String[] hudNames = { "updateLivesUI", "refreshLives", "updateHUD", "updateLifeDisplay" };
+        for (String name : hudNames) {
+            try {
+                Method m = cls.getMethod(name);
+                m.invoke(pandaActor);
+                return;
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                // ignore
+            }
+        }
+        try {
+            Class<?> hudMgr = Class.forName("HUD");
+            for (String name : hudNames) {
+                try {
+                    Method m = hudMgr.getMethod(name);
+                    m.invoke(null);
+                    return;
+                } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                    // continue
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            // no HUD manager found; ignore
+        }
     }
 }
