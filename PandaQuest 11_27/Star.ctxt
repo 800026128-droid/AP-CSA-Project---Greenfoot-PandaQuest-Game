@@ -1,0 +1,10 @@
+#BlueJ class context
+comment0.target=Star
+comment0.text=\r\n\ Star\ -\ A\ beneficial\ item\ in\ PandaQuest.\r\n\r\n\ When\ revealed,\ a\ star\ gives\ the\ player\ an\ extra\ life,\r\n\ acting\ as\ the\ opposite\ of\ Bamboo.\r\n\r\n\ @author\ PandaQuest\ Team\r\n\ @version\ 1.0\r\n
+comment1.params=
+comment1.target=Star()
+comment1.text=\r\n\ Constructor\ for\ Star.\r\n\ The\ image\ for\ this\ actor\ should\ be\ set\ in\ Greenfoot\ (star.png\ or\ similar).\r\n
+comment2.params=
+comment2.target=void\ act()
+comment2.text=\r\n\ Act\ -\ Star\ is\ static\ and\ doesn't\ need\ to\ do\ anything\ per\ act\ cycle.\r\n
+numComments=3
