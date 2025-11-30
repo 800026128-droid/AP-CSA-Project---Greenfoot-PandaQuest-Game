@@ -11,6 +11,9 @@ import greenfoot.*;
  */
 public class PandaWorld extends World
 {
+    private GreenfootSound levelUpSound = new GreenfootSound("PowerUpSound.mp3");
+    private GreenfootSound levelDownSound = new GreenfootSound("Level Down Sound Effect.mp3");
+
     private static final int CELL_SIZE = 50;
 
     // Playable grid size (kept as original 8x8)
@@ -27,9 +30,13 @@ public class PandaWorld extends World
     private int level = Levels.currentLevel;
     private int lives;
     private int score;
+
     // Game state arrays use PLAY_* sizes (indices are in playable coordinates 0..PLAY_WIDTH-1)
     private boolean[][] bambooGrid;
     private boolean[][] revealedGrid;
+
+    // New: star grid, same dimensions as bambooGrid
+    private boolean[][] starGrid;
 
     /**
      * Constructor for PandaWorld.
@@ -38,7 +45,7 @@ public class PandaWorld extends World
     public PandaWorld()
     {
         // Create world larger than the playable grid so we can draw a frame around it
-        super(Levels.currentLevel *2 + 8, Levels.currentLevel *2 + 8, CELL_SIZE);
+        super(Levels.currentLevel * 2 + 8, Levels.currentLevel * 2 + 8, CELL_SIZE);
         level = Levels.currentLevel;
         lives = 3;
         score = 0;
@@ -46,13 +53,16 @@ public class PandaWorld extends World
         PLAY_HEIGHT = Levels.currentLevel * 2 + 6;
         WORLD_WIDTH = PLAY_WIDTH + 2;
         WORLD_HEIGHT = PLAY_WIDTH + 2;
-        // In your World subclass constructor or setup method
+
+        // Initialize game state
         initializeGame();
         prepare();
         drawFrame();
-        setPaintOrder(Panda.class, Bamboo.class, TileMarker.class);
+
+        // Ensure render order (top to bottom)
+        setPaintOrder(Panda.class, Star.class, Bamboo.class, TileMarker.class);
     }
-    // In your World subclass constructor or setup method
+
     /**
      * Initialize the game state.
      */
@@ -60,10 +70,15 @@ public class PandaWorld extends World
     {
         bambooGrid = new boolean[PLAY_WIDTH][PLAY_HEIGHT];
         revealedGrid = new boolean[PLAY_WIDTH][PLAY_HEIGHT];
+        starGrid = new boolean[PLAY_WIDTH][PLAY_HEIGHT];
 
         // Place bamboo randomly (uses playable dimensions)
         int bambooCount = 5 + (level * 3);
         placeBambooRandomly(bambooCount);
+
+        // Place stars randomly (beneficial tiles, no overlap with bamboo)
+        int starCount = 2 + level; // tweak this for difficulty
+        placeStarsRandomly(starCount);
     }
 
     /**
@@ -84,6 +99,24 @@ public class PandaWorld extends World
     }
 
     /**
+     * Place stars randomly on the playable grid.
+     * Stars cannot overlap bamboo or other stars.
+     */
+    private void placeStarsRandomly(int count)
+    {
+        int placed = 0;
+        while (placed < count) {
+            int x = Greenfoot.getRandomNumber(PLAY_WIDTH);
+            int y = Greenfoot.getRandomNumber(PLAY_HEIGHT);
+
+            if (!bambooGrid[x][y] && !starGrid[x][y]) {
+                starGrid[x][y] = true;
+                placed++;
+            }
+        }
+    }
+
+    /**
      * Prepare the world for the start of the program.
      * Add initial actors to the world.
      */
@@ -92,6 +125,7 @@ public class PandaWorld extends World
         // Add panda at starting position inside the frame (playable origin is offset by FRAME_SIZE)
         Panda panda = new Panda();
         addObject(panda, FRAME_SIZE, FRAME_SIZE);
+
         // Display game info inside the top frame row (centered)
         showText("Level: " + level + " Lives: " + lives + " Score: " + score,
                  WORLD_WIDTH / 2, 0);
@@ -152,6 +186,9 @@ public class PandaWorld extends World
     /**
      * Reveal a tile at the specified world position.
      * Note: x,y parameters are expected to be world coordinates. They are mapped to playable coordinates internally.
+     *
+     * Returns true if an "instant-effect" tile was hit (bamboo or star),
+     * false otherwise.
      */
     public boolean revealTile(int worldX, int worldY)
     {
@@ -168,10 +205,12 @@ public class PandaWorld extends World
 
         revealedGrid[x][y] = true;
 
+        // Bamboo: lose a life
         if (bambooGrid[x][y]) {
-            // Hit bamboo - lose a life
             lives--;
             addObject(new Bamboo(), worldX, worldY); // show bamboo visually at world coords
+            Greenfoot.playSound("Wood PlacingBreaking (Nr. 4  Minecraft Sound) - Sound Effect for.mp3");
+            levelDownSound.play();
             updateDisplay();
 
             if (lives <= 0) {
@@ -180,16 +219,25 @@ public class PandaWorld extends World
             return true;
         }
 
+        // Star: gain a life (opposite of bamboo).
+        // This only happens when revealTile is called explicitly (e.g. press SPACE),
+        // not via autoRevealAdjacent.
+        if (starGrid[x][y]) {
+            lives++;
+            addObject(new Star(), worldX, worldY); // show star visually at world coords
+            Greenfoot.playSound("StarSound.mp3");
+            updateDisplay();
+            return true;
+        }
+
+        // Normal safe tile path:
+
         // Count adjacent bamboo (playable coords)
         int adjacentBamboo = countAdjacentBamboo(x, y);
 
         // Add visual marker for this tile at world coords
         TileMarker marker = new TileMarker(adjacentBamboo);
         addObject(marker, worldX, worldY);
-        
-    
-
-    
 
         // Auto-reveal if no adjacent bamboo
         if (adjacentBamboo == 0) {
@@ -206,17 +254,22 @@ public class PandaWorld extends World
 
         return false;
     }
+
     public void addFlag(int worldX, int worldY)
     {
         FlagMarker flag = new FlagMarker();
         addObject(flag, worldX, worldY);
+        Greenfoot.playSound("FlagSound_.mp3");
         updateDisplay();
     }
+
     public void removeFlag(int worldX, int worldY)
     {
         removeObjects(getObjectsAt(worldX, worldY, FlagMarker.class));
+        Greenfoot.playSound("FlagSound.mp3");
         updateDisplay();
     }
+
     /**
      * Count bamboo in adjacent playable tiles (x,y are playable coords).
      */
@@ -228,9 +281,12 @@ public class PandaWorld extends World
                 if (i == 0 && j == 0) continue;
                 int newX = x + i;
                 int newY = y + j;
-                if (newX >= 0 && newX < bambooGrid.length && newY >= 0 && newY < bambooGrid[0].length)
+                if (newX >= 0 && newX < bambooGrid.length &&
+                    newY >= 0 && newY < bambooGrid[0].length) {
+
                     if (bambooGrid[newX][newY]) {
                         count++;
+                    }
                 }
             }
         }
@@ -239,6 +295,10 @@ public class PandaWorld extends World
 
     /**
      * Auto-reveal adjacent tiles recursively. Input coordinates are playable coords.
+     *
+     * Important: star tiles are NOT auto-revealed here,
+     * so they only appear when the player explicitly reveals that tile
+     * (just like bamboo).
      */
     private void autoRevealAdjacent(int x, int y)
     {
@@ -247,9 +307,12 @@ public class PandaWorld extends World
                 if (i == 0 && j == 0) continue;
                 int newX = x + i;
                 int newY = y + j;
+
                 if (newX >= 0 && newX < PLAY_WIDTH &&
                     newY >= 0 && newY < PLAY_HEIGHT &&
-                    !revealedGrid[newX][newY] && !bambooGrid[newX][newY]) {
+                    !revealedGrid[newX][newY] &&
+                    !bambooGrid[newX][newY] &&
+                    !starGrid[newX][newY]) {   // <-- skip stars here
 
                     revealedGrid[newX][newY] = true;
 
@@ -287,6 +350,8 @@ public class PandaWorld extends World
      */
     private void levelComplete()
     {
+        levelUpSound.play();
+        
         level++;
         showText("Level " + (level - 1) + " Complete! Press SPACE for next level",
                  WORLD_WIDTH / 2, 0);
